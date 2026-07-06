@@ -5,9 +5,9 @@ const RAW_DATA = [{"PO #": "P-80310", "PO Date": "2026-02-24", "Vendor": "STAR S
 
 const TODAY = new Date("2026-07-04");
 const daysDiff = d => Math.floor((TODAY - new Date(d)) / 86400000);
-const ageBucket = d => d < 30 ? "< 1 Month" : d < 90 ? "1–3 Months" : d < 180 ? "3–6 Months" : d < 365 ? "6–12 Months" : "> 12 Months";
-const BUCKETS = ["< 1 Month", "1–3 Months", "3–6 Months", "6–12 Months", "> 12 Months"];
-const BCOLORS = { "< 1 Month": "#4ade80", "1–3 Months": "#60a5fa", "3–6 Months": "#fbbf24", "6–12 Months": "#fb923c", "> 12 Months": "#f87171" };
+const ageBucket = d => d < 30 ? "< 1 Month" : d < 90 ? "1–3 Months" : d < 180 ? "3–6 Months" : "> 6 Months";
+const BUCKETS = ["< 1 Month", "1–3 Months", "3–6 Months", "> 6 Months"];
+const BCOLORS = { "< 1 Month": "#4ade80", "1–3 Months": "#60a5fa", "3–6 Months": "#fbbf24", "> 6 Months": "#f87171" };
 const fmt$ = v => "$" + v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmtK = v => v >= 1000 ? "$" + (v / 1000).toFixed(0) + "K" : "$" + v.toFixed(0);
 
@@ -197,11 +197,10 @@ export default function Dashboard() {
                 <button key={b} onClick={() => setSelectedBucket(active ? null : b)}
                   style={{ background: active ? BCOLORS[b] + "20" : "#0d1a30", border: `2px solid ${active ? BCOLORS[b] : "#1e3a5f"}`, borderRadius: 10, padding: "14px 10px", cursor: "pointer", transition: "all 0.15s", textAlign: "center" }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: BCOLORS[b], margin: "0 auto 8px" }} />
-                  <div style={{ fontSize: 10, color: "#8aa8c8", marginBottom: 6, fontWeight: 700 }}>{b}</div>
-                  <div style={{ fontSize: 30, fontWeight: 900, color: BCOLORS[b], lineHeight: 1 }}>{info.pos}</div>
-                  <div style={{ fontSize: 10, color: "#5a7a99", marginTop: 3 }}>open POs</div>
+                  <div style={{ fontSize: 13, color: "#8aa8c8", marginBottom: 6, fontWeight: 700 }}>{b}</div>
+                  <div style={{ fontSize: 38, fontWeight: 900, color: BCOLORS[b], lineHeight: 1 }}>{info.pos}</div>
                   <div style={{ height: 1, background: "#1e3a5f", margin: "8px 0" }} />
-                  <div style={{ fontSize: 13, color: "#c8d6e8", fontWeight: 700 }}>{fmtK(info.openAmt)}</div>
+                  <div style={{ fontSize: 15, color: "#c8d6e8", fontWeight: 700 }}>{fmtK(info.openAmt)}</div>
                   <div style={{ fontSize: 10, color: "#5a7a99" }}>open amount</div>
                 </button>
               );
@@ -222,7 +221,7 @@ export default function Dashboard() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
             {[
-              { key: "pastDue", label: "Past Due", icon: "⚠️", count: insightsAll.pastDue.length, color: "#f87171", sub: `${insightsAll.pastDue.reduce((s, p) => s + p["Open Amt"], 0).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })} at risk` },
+              { key: "pastDue", label: "Past Due (Need Update ETA)", icon: "⚠️", count: insightsAll.pastDue.length, color: "#f87171", sub: `${insightsAll.pastDue.reduce((s, p) => s + p["Open Amt"], 0).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })} at risk` },
               { key: "onTrack", label: "On Track", icon: "✅", count: insightsAll.onTrack.length, color: "#4ade80", sub: "ETA confirmed, not yet due" },
               { key: "noETA", label: "No ETA Provided", icon: "❓", count: insightsAll.noETA.length, color: "#fbbf24", sub: "vendor hasn't confirmed date" },
               { key: "partial", label: "Partially Received", icon: "📦", count: insightsAll.partial.length, color: "#60a5fa", sub: `${partialLines.length} line items in progress` },
@@ -250,62 +249,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Detail strips: worst overdue + partial receipts closest to done */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {/* Most overdue POs */}
-            <div style={{ background: "#0d1a30", borderRadius: 10, padding: 16, border: "1px solid #1e3a5f" }}>
-              <div style={{ fontSize: 11, color: "#f87171", fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                🔴 Most Overdue POs
-              </div>
-              {overdueDetail.length === 0 ? (
-                <div style={{ fontSize: 12, color: "#5a7a99", padding: "8px 0" }}>No overdue POs — everything is on track.</div>
-              ) : (
-                <div>
-                  {overdueDetail.slice(0, 5).map(p => (
-                    <div key={p["PO #"]} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid #142238" }}>
-                      <div>
-                        <span style={{ color: "#7cc4f8", fontWeight: 700, fontSize: 12 }}>{p["PO #"]}</span>
-                        <span style={{ color: "#7a9cbf", fontSize: 11, marginLeft: 8 }}>{p.Vendor.split(" ").slice(0, 2).join(" ")}</span>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <span style={{ background: "#3d1414", color: "#f87171", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{p.daysLate}d late</span>
-                        <span style={{ color: "#34d399", fontSize: 11, fontWeight: 700, marginLeft: 8 }}>{fmt$(p["Open Amt"])}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {overdueDetail.length > 5 && <div style={{ fontSize: 10, color: "#5a7a99", marginTop: 8 }}>+{overdueDetail.length - 5} more — use the "Past Due" filter above to see all</div>}
-                </div>
-              )}
-            </div>
-
-            {/* Closest to fully received */}
-            <div style={{ background: "#0d1a30", borderRadius: 10, padding: 16, border: "1px solid #1e3a5f" }}>
-              <div style={{ fontSize: 11, color: "#60a5fa", fontWeight: 700, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                📦 Closest to Fully Received
-              </div>
-              {partialLines.length === 0 ? (
-                <div style={{ fontSize: 12, color: "#5a7a99", padding: "8px 0" }}>No partial receipts on open lines.</div>
-              ) : (
-                <div>
-                  {partialLines.slice(0, 5).map((l, i) => (
-                    <div key={i} style={{ padding: "7px 0", borderBottom: "1px solid #142238" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <span style={{ color: "#7cc4f8", fontWeight: 700, fontSize: 12 }}>{l["PO #"]}</span>
-                          <span style={{ color: "#7a9cbf", fontSize: 11, marginLeft: 8, fontFamily: "monospace" }}>{l.Item}</span>
-                        </div>
-                        <span style={{ color: "#fbbf24", fontSize: 12, fontWeight: 700 }}>{l.Backordered.toLocaleString()} pcs left</span>
-                      </div>
-                      <div style={{ marginTop: 4, height: 5, background: "#162338", borderRadius: 3, overflow: "hidden" }}>
-                        <div style={{ width: `${(l.pctReceived * 100).toFixed(0)}%`, height: "100%", background: "#60a5fa" }} />
-                      </div>
-                      <div style={{ fontSize: 10, color: "#5a7a99", marginTop: 3 }}>{l.Received.toLocaleString()} of {l.Ordered.toLocaleString()} received ({(l.pctReceived * 100).toFixed(0)}%)</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Charts Row */}
