@@ -30,7 +30,13 @@ const allPOs = buildPOs(lines);
 const allDropShipPOs = allPOs.filter(p => p["Drop Ship"] === "Yes").length;
 const vendors = ["All Vendors", ...Array.from(new Set(lines.map(r => r.Vendor))).sort()];
 
-// ── Insights helpers ──
+// ── Week-over-week tracking ──
+// Previous week's PO list (updated each time a new file is loaded)
+const PREV_PO_LIST = ["20172805","20172812","20172813","2017858","20172826","20172827","20172828","20172829","20172830","20172831","20172832","20172833","20172834","20172835","20172836","20172837","20172838","20172839","20172840","20172841","20172842","20172843","20172844","20172845","20172846","20172847","20172848","20172849","20172850","20172851","20172852","20172853","20172854","20172855","20172856","20172857","20172858","20172859","20172861","P-80265","P-80267","80269","P-80272","P-80278","P-80279","P-80280","P-80281","P-80282","P-80283","P-80284","P-80285","P-80286","P-80288","P-80289","P-80292","P-80293","P-80295","P-80296","P-80297","P-80299","P-80300","P-80301","P-80302","P-80303","P-80304","P-80305","P-80306","P-80307","P-80308","P-80309","P-80310","P-80311","P-80312","P-80313"];
+const currentPOSet = new Set(allPOs.map(p => p["PO #"]));
+const prevPOSet = new Set(PREV_PO_LIST);
+const newPOs = allPOs.filter(p => !prevPOSet.has(p["PO #"])).length;
+const closedPOs = PREV_PO_LIST.filter(po => !currentPOSet.has(po)).length;
 // A PO is "Past Due" if it has at least one line with an ETA in the past
 // A PO has "No ETA" if NONE of its lines have an ETA
 // A PO is "Partially Received" if it has Received > 0 on at least one line (and is still open)
@@ -172,6 +178,22 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Weekly Change card */}
+          <div style={{ background: "#0d1a30", border: "1px solid #1e4a8f44", borderRadius: 10, padding: "14px 16px" }}>
+            <div style={{ fontSize: 10, color: "#6b8aaa", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>Weekly Change</div>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: "#4ade80", lineHeight: 1 }}>+{newPOs}</div>
+                <div style={{ fontSize: 10, color: "#4a6a88", marginTop: 4 }}>New POs</div>
+              </div>
+              <div style={{ width: 1, background: "#1e3a5f", alignSelf: "stretch", margin: "2px 0" }} />
+              <div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: "#f87171", lineHeight: 1 }}>-{closedPOs}</div>
+                <div style={{ fontSize: 10, color: "#4a6a88", marginTop: 4 }}>Closed POs</div>
+              </div>
+            </div>
+          </div>
+
           {[
             { label: "Total Open Amount", value: fmt$(lines.reduce((s, r) => s + r["Open Amt"], 0)), sub: "backordered value", color: "#22d3ee", big: true },
             { label: "Total Backordered", value: lines.reduce((s, r) => s + r.Backordered, 0).toLocaleString(), sub: "units pending", color: "#fbbf24" },
@@ -295,17 +317,26 @@ export default function Dashboard() {
             <div style={{ fontSize: 10, color: "#4a6a88", marginBottom: 12 }}>
               {selectedVendor !== "All Vendors" || selectedBucket ? "Filtered view · " : ""}
               <span style={{ color: "#60a5fa" }}>■</span> Standard &nbsp;
-              <span style={{ color: "#c084fc" }}>■</span> Drop Ship
+              <span style={{ color: "#c084fc" }}>■</span> Drop Ship &nbsp;·&nbsp;
+              <span style={{ color: "#6b8aaa" }}>click bar to filter</span>
             </div>
             <ResponsiveContainer width="100%" height={196}>
-              <BarChart data={vendorBar} layout="vertical" barSize={16} barGap={2}>
+              <BarChart data={vendorBar} layout="vertical" barSize={16} barGap={2}
+                onClick={e => {
+                  if (e && e.activePayload && e.activePayload[0]) {
+                    const clicked = e.activePayload[0].payload.full;
+                    setSelectedVendor(selectedVendor === clicked ? "All Vendors" : clicked);
+                  }
+                }}>
                 <XAxis type="number" tick={{ fill: "#6b8aaa", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => "$" + (v / 1000).toFixed(0) + "K"} />
                 <YAxis dataKey="vendor" type="category" tick={{ fill: "#8aa8c8", fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} width={68} />
                 <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid #1e3a5f", borderRadius: 8, color: "#dde6f0", fontSize: 12 }}
                   formatter={(v, name, p) => [fmt$(v), name === "standard" ? "Standard" : "Drop Ship"]}
-                  labelFormatter={(l, payload) => payload?.[0]?.payload?.full || l} />
-                <Bar dataKey="standard" name="standard" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="dropShip" name="dropShip" stackId="a" fill="#a855f7" radius={[0, 4, 4, 0]} />
+                  labelFormatter={(l, payload) => payload?.[0]?.payload?.full || l} cursor={{ fill: "#ffffff08" }} />
+                <Bar dataKey="standard" name="standard" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} style={{ cursor: "pointer" }}
+                  onClick={(d) => setSelectedVendor(selectedVendor === d.full ? "All Vendors" : d.full)} />
+                <Bar dataKey="dropShip" name="dropShip" stackId="a" fill="#a855f7" radius={[0, 4, 4, 0]} style={{ cursor: "pointer" }}
+                  onClick={(d) => setSelectedVendor(selectedVendor === d.full ? "All Vendors" : d.full)} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -344,12 +375,12 @@ export default function Dashboard() {
                     <Th col="PO #" label="PO #" /><Th col="PO Date" label="PO Date" /><Th col="Vendor" label="Vendor" />
                     <Th col="Ordered" label="Ordered" right /><Th col="Backordered" label="Backordered" right />
                     <Th col="Received" label="Received" right /><Th col="Open Amt" label="Open Amt" right />
-                    <Th col="ETA" label="Latest ETA" /><Th col="days" label="Age" /><Th col="Drop Ship" label="DS" />
+                    <Th col="ETA" label="Latest ETA" /><Th col="days" label="Age" /><Th col="Drop Ship" label="Drop Shipment" />
                   </> : <>
                     <Th col="PO #" label="PO #" /><Th col="PO Date" label="PO Date" /><Th col="Vendor" label="Vendor" />
                     <Th col="Item" label="Item" /><Th col="Backordered" label="Backordered" right />
                     <Th col="Open Amt" label="Open Amt" right /><Th col="ETA" label="ETA" />
-                    <Th col="days" label="Age" /><Th col="Drop Ship" label="DS" />
+                    <Th col="days" label="Age" /><Th col="Drop Ship" label="Drop Shipment" />
                   </>}
                 </tr>
               </thead>
