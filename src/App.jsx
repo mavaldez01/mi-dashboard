@@ -202,7 +202,6 @@ export default function Dashboard() {
 
           {[
             { label: "Total Open Amount", value: fmt$(lines.reduce((s, r) => s + r["Open Amt"], 0)), sub: "backordered value", color: "#22d3ee", big: true },
-            { label: "Total Backordered", value: lines.reduce((s, r) => s + r.Backordered, 0).toLocaleString(), sub: "units pending", color: "#fbbf24" },
             { label: "Vendors", value: new Set(lines.map(r => r.Vendor)).size, sub: "active suppliers", color: "#a78bfa" },
             { label: "Line Items", value: lines.length, sub: "open detail lines", color: "#94a3b8" },
           ].map(k => (
