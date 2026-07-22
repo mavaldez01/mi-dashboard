@@ -61,10 +61,6 @@ const PREV_SO_LIST = ['201710515','201710640','201710644','201710771','201710827
   '20456','20459','20462','20463','20466','20467','20468','20469','20473','20475','20476','20477',
   '20478','20479','20483','20484','20485','20489','20490','20491','20492','20496','20497','20499',
   '20501','20502','20504','20505'];
-const currentSOSet = new Set(allSOs.map(s => s["Order #"]));
-const prevSOSet = new Set(PREV_SO_LIST);
-const newSOsCount = allSOs.filter(s => !prevSOSet.has(s["Order #"])).length;
-const closedSOsCount = PREV_SO_LIST.filter(o => !currentSOSet.has(o)).length;
 // A PO is "Past Due" if it has at least one line with an ETA in the past
 // A PO has "No ETA" if NONE of its lines have an ETA
 // A PO is "Partially Received" if it has Received > 0 on at least one line (and is still open)
@@ -120,6 +116,10 @@ function buildSOs(rows) {
 }
 
 const allSOs = buildSOs(soLines);
+const currentSOSet = new Set(allSOs.map(s => s["Order #"]));
+const prevSOSet = new Set(PREV_SO_LIST);
+const newSOsCount = allSOs.filter(s => !prevSOSet.has(s["Order #"])).length;
+const closedSOsCount = PREV_SO_LIST.filter(o => !currentSOSet.has(o)).length;
 const soCustomers = ["All Customers", ...Array.from(new Set(soLines.map(r => r.Customer))).sort()];
 
 function classifySOs(sos) {
